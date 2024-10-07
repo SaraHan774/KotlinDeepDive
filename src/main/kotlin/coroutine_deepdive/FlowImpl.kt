@@ -58,7 +58,7 @@ val flow = object : Flow {
     }
 }
 
-fun flow(builder: suspend FlowCollector.() -> Unit) = object: Flow {
+private fun flow(builder: suspend FlowCollector.() -> Unit) = object: Flow {
     override suspend fun collect(collector: FlowCollector) {
         collector.builder()
     }

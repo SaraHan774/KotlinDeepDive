@@ -1,10 +1,14 @@
 package coroutine_deepdive
 
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 fun main() = runBlocking {
-    understandFlow6()
+    testFlowCounter()
 }
 
 private fun understandFlow() {
@@ -55,7 +59,7 @@ private fun interface FlowCollector2 {
 }
 
 private suspend fun understandFlow4_1() {
-    val f : suspend (FlowCollector2) -> Unit = {
+    val f: suspend (FlowCollector2) -> Unit = {
         it.emit("A")
         it.emit("B")
         it.emit("C") // it 계속 반복 안하려면 FlowCollector 를 리시버로 받으면 됨
@@ -65,7 +69,7 @@ private suspend fun understandFlow4_1() {
 }
 
 private suspend fun understandFlow4_2() {
-    val f : suspend FlowCollector2.() -> Unit = {
+    val f: suspend FlowCollector2.() -> Unit = {
         emit("A")
         emit("B")
         emit("C")
@@ -88,7 +92,7 @@ private suspend fun understandFlow5() {
         emit("A")
     }
 
-    val flow: Flow2 = object: Flow2 {
+    val flow: Flow2 = object : Flow2 {
         override suspend fun collect(collector: FlowCollector2) {
             collector.builder()
         }
@@ -117,3 +121,40 @@ private suspend fun understandFlow6() {
 }
 
 // 마지막으로 타입에 상관없이 값을 방출하고 모으기 위해 String 을 제네릭 타입으로 바꾼다45
+
+private suspend fun Flow<String>.testCounter() = flow {
+    var counter = 0
+    // println("Outside = " + Thread.currentThread().name) // main
+    collect { // 콜렉션 단계에서 counter 종속적이면 오케이
+        counter++
+        List(100) { kotlin.random.Random(0) }.shuffled()
+        // println("Inside = " + Thread.currentThread().name) // main
+        emit(counter.toString())
+    }
+}
+
+private fun Flow<String>.testCounterWrong(): Flow<String> {
+    var counter = 0
+    return this.map { // map 을 해버리면 플로우 자체에 종속된다
+        counter++
+        List(100) { kotlin.random.Random(0) }.shuffled()
+        counter.toString()
+    }
+}
+
+// 외부 변수는 플로우 콜렉션이 아니라 플로우 자체에 종속되면 동기화 문제 발생
+
+private suspend fun testFlowCounter() {
+    val flow : Flow<String> = List(1000) { "$it" }.asFlow().testCounter()
+
+    // 플로우 생성됨 -> 생성된 애를 두번 콜렉트
+    val flowWrong : Flow<String> = List(1000) { "$it" }.asFlow().testCounterWrong()
+
+    coroutineScope {
+        launch { println(flow.last()) }
+        launch { println(flow.last()) }
+
+        launch { println(flowWrong.last()) } // 1000
+        launch { println(flowWrong.last()) } // 2000
+    }
+}
