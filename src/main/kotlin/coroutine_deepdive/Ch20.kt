@@ -145,10 +145,10 @@ private fun Flow<String>.testCounterWrong(): Flow<String> {
 // 외부 변수는 플로우 콜렉션이 아니라 플로우 자체에 종속되면 동기화 문제 발생
 
 private suspend fun testFlowCounter() {
-    val flow : Flow<String> = List(1000) { "$it" }.asFlow().testCounter()
+    val flow: Flow<String> = List(1000) { "$it" }.asFlow().testCounter()
 
     // 플로우 생성됨 -> 생성된 애를 두번 콜렉트
-    val flowWrong : Flow<String> = List(1000) { "$it" }.asFlow().testCounterWrong()
+    val flowWrong: Flow<String> = List(1000) { "$it" }.asFlow().testCounterWrong()
 
     coroutineScope {
         launch { println(flow.last()) }
@@ -156,5 +156,12 @@ private suspend fun testFlowCounter() {
 
         launch { println(flowWrong.last()) } // 1000
         launch { println(flowWrong.last()) } // 2000
+    }
+
+    channelFlow<String> {
+        launch {
+            delay(1000)
+
+        }
     }
 }
