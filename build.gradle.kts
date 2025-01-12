@@ -31,6 +31,7 @@ tasks.withType<KotlinCompile> {
 
 application {
     mainClass.set("MainKt")
+    applicationDefaultJvmArgs = listOf("-ea")
 }
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {

@@ -1,3 +1,3 @@
 
-rootProject.name = "kotlin_snippets"
+rootProject.name = "KotlinDeepDive"
 
